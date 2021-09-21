@@ -5,6 +5,7 @@ from flask_migrate import Migrate
 from flask_cors import CORS
 from werkzeug.exceptions import BadRequest
 from models import CreateEntity
+from config import DB_PATH_TEST
 import sys
 
 
@@ -14,6 +15,9 @@ def create_app(test_config=None):
 
     # db setting
     app.config.from_object('config')
+    if test_config is True:
+        app.config['SQLALCHEMY_DATABASE_URI'] = DB_PATH_TEST
+
     db = SQLAlchemy(app)
     migrate = Migrate(app, db)
 
@@ -84,7 +88,7 @@ def create_app(test_config=None):
 
             insert_movie.insert()
             return jsonify({
-                'suceess': True,
+                'success': True,
                 'new_movie': insert_movie.id
             })
 
@@ -118,7 +122,7 @@ def create_app(test_config=None):
         except:
             error_msg = sys.exc_info()
             print(error_msg)
-            abort(500)
+            abort(400)
     
     @app.route('/movies/<int:movie_id>', methods=['DELETE'])
     def delete_movie(movie_id):
@@ -229,7 +233,7 @@ def create_app(test_config=None):
         except:
             err_msg = sys.exc_info()
             print(err_msg)
-            abort(500)
+            abort(400)
 
     @app.route('/actors/<int:actor_id>', methods=['DELETE'])
     def delete_actor(actor_id):
@@ -289,7 +293,7 @@ def create_app(test_config=None):
         except:
             error_msg = sys.exc_info()
             print(error_msg)
-            abort(500)
+            abort(400)
     
     @app.route('/directors', methods=['POST'])
     def add_director():
@@ -304,8 +308,8 @@ def create_app(test_config=None):
 
             insert_director.insert()
             return jsonify({
-                'suceess': True,
-                'new_movie': insert_director.id
+                'success': True,
+                'new_director': insert_director.id
             })
 
         except:
@@ -339,7 +343,7 @@ def create_app(test_config=None):
         except:
             err_msg = sys.exc_info()
             print(err_msg)
-            abort(500)
+            abort(400)
 
     @app.route('/directors/<int:director_id>', methods=['DELETE'])
     def delete_director(director_id):
@@ -394,8 +398,8 @@ def create_app(test_config=None):
 
             insert_ma.insert()
             return jsonify({
-                'suceess': True,
-                'new_movie': insert_ma.id
+                'success': True,
+                'new_movie_actor': insert_ma.id
             })
 
         except:
@@ -428,7 +432,7 @@ def create_app(test_config=None):
         except:
             error_msg = sys.exc_info()
             print(error_msg)
-            abort(500)
+            abort(400)
     
     @app.route('/movie_actors/<int:ma_id>', methods=['DELETE'])
     def delete_movie_actor(ma_id):
@@ -464,6 +468,22 @@ def create_app(test_config=None):
             'error': 400,
             'message': 'bad request'
         }), 400
+    
+    @app.errorhandler(401)
+    def forbidden(error):
+        return jsonify({
+            'success': False,
+            'error': 401,
+            'message': 'forbidden'
+        }),401
+
+    @app.errorhandler(403)
+    def unauthorized(error):
+        return jsonify({
+            'success': False,
+            'error': 403,
+            'message': 'unauthorized'
+        }),403
 
     @app.errorhandler(404)
     def resource_not_found(error):
