@@ -3,6 +3,7 @@ from flask import Flask, json, request, abort, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS
+from werkzeug.exceptions import BadRequest
 from models import CreateEntity
 import sys
 
@@ -54,18 +55,17 @@ def create_app(test_config=None):
             movie = (Movie.query
                      .filter(Movie.id == movie_id)
                      .one_or_none())
-            
-            # print(movie.director.json_format())
-            print([ma.ma_actor.name for ma in movie.movie_actor])
 
             if movie is None:
-                abort(400)
+                raise BadRequest
 
             return jsonify({
                 'success': True,
                 'movie': movie.json_format()
             })
 
+        except BadRequest:
+            abort(400)
         except:
             error_msg = sys.exc_info()
             print(error_msg)
@@ -102,7 +102,7 @@ def create_app(test_config=None):
                      .one_or_none())
 
             if movie is None:
-                abort(422)
+                raise BadRequest
             
             movie.title = body.get('title', None)
             movie.release_date = body.get('release_date', None)
@@ -113,10 +113,12 @@ def create_app(test_config=None):
               'success': True,
               'updated_movie': movie.json_format()
             })
+        except BadRequest:
+            abort(400)
         except:
             error_msg = sys.exc_info()
             print(error_msg)
-            abort(400)
+            abort(500)
     
     @app.route('/movies/<int:movie_id>', methods=['DELETE'])
     def delete_movie(movie_id):
@@ -126,7 +128,7 @@ def create_app(test_config=None):
                      .one_or_none())
             
             if movie is None:
-                abort(400)
+                raise BadRequest
             
             movie.delete()
 
@@ -134,6 +136,8 @@ def create_app(test_config=None):
                 'success': True,
                 'deleted_movie': movie_id
             })
+        except BadRequest:
+            abort(400)
         except:
             err_msg = sys.exc_info()
             print(err_msg)
@@ -146,9 +150,6 @@ def create_app(test_config=None):
         try:
             actors = [a.json_format() for a in Actor.query.all()]
 
-            if actors is None:
-                abort(404)
-
             return jsonify({
                 'success': True,
                 'actors': actors
@@ -156,22 +157,25 @@ def create_app(test_config=None):
         except:
             error_msg = sys.exc_info()
             print(error_msg)
-            abort(500)
+            abort(404)
     
     @app.route('/actors/<int:actor_id>')
     def get_actor_by_id(actor_id):
         try:
             actor = (Actor.query
                      .filter(Actor.id == actor_id)
-                     .one_or_none)
+                     .one_or_none())
             
             if actor is None:
-                abort(400)
+                raise BadRequest
             
             return jsonify({
                 'success': True,
                 'actor': actor.json_format()
             })
+        
+        except BadRequest:
+            abort(400)
         except:
             error_msg = sys.exc_info()
             print(error_msg)
@@ -205,8 +209,11 @@ def create_app(test_config=None):
             body = request.get_json()
             actor = (Actor.query
                      .filter(Actor.id == actor_id)
-                     .one_or_none)
+                     .one_or_none())
             
+            if actor is None:
+                raise BadRequest
+
             actor.name = body.get('name', None)
             actor.age = body.get('age', None)
             actor.gender = body.get('gender', None)
@@ -217,20 +224,22 @@ def create_app(test_config=None):
                 'success': True,
                 'updated_actor': actor.json_format()
             })
-        except:
-            error_msg = sys.exc_info()
-            print(error_msg)
+        except BadRequest:
             abort(400)
+        except:
+            err_msg = sys.exc_info()
+            print(err_msg)
+            abort(500)
 
     @app.route('/actors/<int:actor_id>', methods=['DELETE'])
     def delete_actor(actor_id):
         try:
             actor = (Actor.query
                      .filter(Actor.id == actor_id)
-                     .one_or_none)
+                     .one_or_none())
             
             if actor is None:
-                abort(400)
+                raise BadRequest
             
             actor.delete()
 
@@ -238,6 +247,8 @@ def create_app(test_config=None):
                 'success': True,
                 'deleted_actor': actor_id
             })
+        except BadRequest:
+            abort(400)
         except:
             err_msg = sys.exc_info()
             print(err_msg)
@@ -245,11 +256,205 @@ def create_app(test_config=None):
     # endregion
 
     # region: director endpoints
+    @app.route('/directors')
+    def get_directors():
+        try:
+            directors = [d.json_format() for d in Director.query.all()]
+
+            return jsonify({
+                'success': True,
+                'directors': directors
+            })
+        except:
+           error_msg = sys.exc_info()
+           print(error_msg)
+           abort(404)
+
+    @app.route('/directors/<int:director_id>')
+    def get_director_by_id(director_id):
+        try:
+            director = (Director.query
+                        .filter(Director.id == director_id)
+                        .one_or_none())
+            
+            if director is None:
+                raise BadRequest
+            
+            return jsonify({
+                'success': True,
+                'director': director.json_format()
+            })
+        except BadRequest:
+            abort(400)
+        except:
+            error_msg = sys.exc_info()
+            print(error_msg)
+            abort(500)
+    
+    @app.route('/directors', methods=['POST'])
+    def add_director():
+        try:
+            body = request.get_json()
+
+            insert_director = Director(
+                name = body.get('name', None),
+                age = body.get('age', None),
+                gender = body.get('gender', None)
+            )
+
+            insert_director.insert()
+            return jsonify({
+                'suceess': True,
+                'new_movie': insert_director.id
+            })
+
+        except:
+            error_msg = sys.exc_info()
+            print(error_msg)
+            abort(400)
+
+    @app.route('/directors/<int:director_id>', methods=['PUT'])
+    def update_director(director_id):
+        try:
+            body = request.get_json()
+            director = (Director.query
+                     .filter(Director.id == director_id)
+                     .one_or_none())
+            
+            if director is None:
+                raise BadRequest
+
+            director.name = body.get('name', None)
+            director.age = body.get('age', None)
+            director.gender = body.get('gender', None)
+
+            director.update()
+
+            return jsonify({
+                'success': True,
+                'updated_director': director.json_format()
+            })
+        except BadRequest:
+            abort(400)
+        except:
+            err_msg = sys.exc_info()
+            print(err_msg)
+            abort(500)
+
+    @app.route('/directors/<int:director_id>', methods=['DELETE'])
+    def delete_director(director_id):
+        try:
+            director = (Director.query
+                     .filter(Director.id == director_id)
+                     .one_or_none())
+            
+            if director is None:
+                raise BadRequest
+            
+            director.delete()
+
+            return jsonify({
+                'success': True,
+                'deleted_director': director_id
+            })
+        except BadRequest:
+            abort(400)
+        except:
+            err_msg = sys.exc_info()
+            print(err_msg)
+            abort(422)
     # endregion
 
     # region: movie_actor endpoints
-    # endregion
+    @app.route('/movie_actors')
+    def get_movie_actors():
+        try:
+            ma = [ma.json_format() for ma in MovieActor.query.all()]
+            
+            return jsonify({
+                'success': True,
+                'movie_actors': ma
+            })
 
+        except:
+            error_msg = sys.exc_info()
+            print(error_msg)
+            abort(404)
+    
+    @app.route('/movie_actors', methods=['POST'])
+    def add_movie_actor():
+        try:
+            body = request.get_json()
+
+            insert_ma = MovieActor(
+                actor_id = body.get('actor_id', None),
+                movie_id = body.get('movie_id', None),
+                actor_pay = body.get('actor_pay', None)
+            )
+
+            insert_ma.insert()
+            return jsonify({
+                'suceess': True,
+                'new_movie': insert_ma.id
+            })
+
+        except:
+            error_msg = sys.exc_info()
+            print(error_msg)
+            abort(400)
+    
+    @app.route('/movie_actors/<int:ma_id>', methods=['PUT'])
+    def update_movie_actor(ma_id):
+        try:
+            body = request.get_json()
+            ma = (MovieActor.query
+                     .filter(MovieActor.id == ma_id)
+                     .one_or_none())
+
+            if ma is None:
+                raise BadRequest
+            
+            ma.actor_id = body.get('actor_id', None),
+            ma.movie_id = body.get('movie_id', None),
+            ma.actor_pay = body.get('actor_pay', None)
+            ma.update()
+
+            return jsonify({
+              'success': True,
+              'updated_movie_actor': ma.json_format()
+            })
+        except BadRequest:
+            abort(400)
+        except:
+            error_msg = sys.exc_info()
+            print(error_msg)
+            abort(500)
+    
+    @app.route('/movie_actors/<int:ma_id>', methods=['DELETE'])
+    def delete_movie_actor(ma_id):
+        try:
+            body = request.get_json()
+            ma = (MovieActor.query
+                     .filter(MovieActor.id == ma_id)
+                     .one_or_none())
+
+            if ma is None:
+                raise BadRequest
+            
+            ma.delete()
+
+            return jsonify({
+                'success': True,
+                'deleted_movie_actor': ma_id
+            })
+        except BadRequest:
+            abort(400)
+        except:
+            err_msg = sys.exc_info()
+            print(err_msg)
+            abort(422)
+
+    # endregion
 
     # region: error_handlers
     @app.errorhandler(400)
