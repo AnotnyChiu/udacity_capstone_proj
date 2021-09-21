@@ -11,6 +11,7 @@ def CreateEntity(db):
         title = db.Column(db.String)
         release_date = db.Column(db.Date)
         director_id = db.Column(db.Integer, db.ForeignKey('director.id'), nullable=False)
+        actors = db.relationship('Actor', secondary="movie_actor")
         
         def __repr__(self):
             return f'<Movie_{self.id}: {self.title}>'
@@ -32,7 +33,13 @@ def CreateEntity(db):
                     'age': ma.ma_actor.age,
                     'gender': ma.ma_actor.gender,
                     'pay': ma.actor_pay
-                } for ma in self.ma_movie]
+                } for ma in self.movie_actor],
+                # 'actors': [{
+                #     'id': a.id,
+                #     'name':a.name,
+                #     'age': a.age,
+                #     'gender': a.gender,
+                # } for a in self.actors]
             }
 
         def __init__(self, title, release_date, director_id):
@@ -59,7 +66,7 @@ def CreateEntity(db):
         name = db.Column(db.String)
         age = db.Column(db.Integer)
         gender = db.Column(db.String)
-        # movie_actors = db.relationship('MovieActor')
+        movies = db.relationship('Movie', secondary='movie_actor')
 
         def __repr__(self):
             return f'<Actor_{self.id}: {self.name}>'
@@ -74,7 +81,12 @@ def CreateEntity(db):
                     'id': ma.ma_movie.id,
                     'title': ma.ma_movie.title,
                     'release_date': ma.ma_movie.release_date
-                } for ma in self.ma_actor]
+                } for ma in self.movie_actor]
+                # 'movies': [{
+                #     'id': m.id,
+                #     'title': m.title,
+                #     'release_date': m.release_date
+                # } for m in self.movies]
             }
 
         def __init__(self, name, age, gender):
@@ -147,8 +159,8 @@ def CreateEntity(db):
         actor_id = db.Column(db.Integer, db.ForeignKey('actor.id'), nullable=False)
         movie_id = db.Column(db.Integer, db.ForeignKey('movie.id'), nullable=False)
         # back ref
-        ma_actor = db.relationship('Actor', backref='ma_actor')
-        ma_movie = db.relationship('Movie', backref='ma_movie')
+        ma_actor = db.relationship('Actor', backref=backref('movie_actor', cascade='all, delete-orphan'))
+        ma_movie = db.relationship('Movie', backref=backref('movie_actor', cascade='all, delete-orphan'))
         actor_pay = db.Column(db.Integer)
 
         def __repr__(self):
@@ -161,8 +173,8 @@ def CreateEntity(db):
         def json_format(self):
             return{
                 'id': self.id,
-                'actor_id': self.ma_actor.id,
-                'movie_id': self.ma_movie.id,
+                'actor_id': self.actor_id,
+                'movie_id': self.movie_id,
                 'actor_pay': self.actor_pay
             }
         
