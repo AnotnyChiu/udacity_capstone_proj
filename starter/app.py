@@ -622,12 +622,11 @@ def create_app(test_config=None):
         }), 500
 
     # endregion
-    return app
+    return app, db
 
 
-APP = create_app()
+app, db = create_app()
 
 if __name__ == '__main__':
-    # remember to remove when publishing
-    APP.env = 'development'
-    APP.run(host='0.0.0.0', port=8080, debug=True)
+    # app.env = 'development'
+    app.run(host='0.0.0.0', port=8080, debug=True)
