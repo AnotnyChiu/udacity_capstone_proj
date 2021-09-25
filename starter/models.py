@@ -184,7 +184,7 @@ def CreateEntity(db):
             db.session.commit()
 
 
-    return Movie, Actor, Director, MovieActor
+    return Movie, Actor, Director, MovieActor, db
 
 '''
 

@@ -37,7 +37,7 @@ def create_app(test_config=None):
         return response
 
     # get models
-    Movie, Actor, Director, MovieActor = CreateEntity(db)
+    Movie, Actor, Director, MovieActor, db_object = CreateEntity(db)
 
     # login,logout endpoint and after login
     @app.route('/login')
@@ -622,7 +622,7 @@ def create_app(test_config=None):
         }), 500
 
     # endregion
-    return app, db
+    return app, db_object
 
 
 app, db = create_app()
