@@ -34,12 +34,6 @@ def CreateEntity(db):
                     'gender': ma.ma_actor.gender,
                     'pay': ma.actor_pay
                 } for ma in self.movie_actor],
-                # 'actors': [{
-                #     'id': a.id,
-                #     'name':a.name,
-                #     'age': a.age,
-                #     'gender': a.gender,
-                # } for a in self.actors]
             }
 
         def __init__(self, title, release_date, director_id):
@@ -82,11 +76,6 @@ def CreateEntity(db):
                     'title': ma.ma_movie.title,
                     'release_date': ma.ma_movie.release_date
                 } for ma in self.movie_actor]
-                # 'movies': [{
-                #     'id': m.id,
-                #     'title': m.title,
-                #     'release_date': m.release_date
-                # } for m in self.movies]
             }
 
         def __init__(self, name, age, gender):
@@ -167,7 +156,7 @@ def CreateEntity(db):
             return (f'<MovieActor_{self.id}\n>'
             "Movie Name: {self.ma_movie.name} \n"
             "Actor Name: {self.ma_actor.name} \n"
-            "Actor Pay: {sefl.actor_pay}"
+            "Actor Pay: {self.actor_pay}"
             )
         
         def json_format(self):

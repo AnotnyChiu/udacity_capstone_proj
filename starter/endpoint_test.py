@@ -6,19 +6,19 @@ import json
 import copy
 
 from app import create_app
-from config import DB_NAME_TEST, DB_PATH_TEST
+from config import DB_NAME_TEST, DB_PATH_TEST, CLIENT_TOKEN, ASSISTANT_TOKEN, PRODUCER_TOKEN
 
 class CapstoneTestCase(unittest.TestCase):
     # setup
     def setUp(self):
-        self.app = create_app(test_config=True)
+        self.app = create_app()
         self.client = self.app.test_client
         # binds the app to the current context
         with self.app.app_context():
             self.db = SQLAlchemy()
             self.db.init_app(self.app)
             # create all tables
-            self.db.create_all()
+            # self.db.create_all()
         
         # fake data for post test
         self.new_movie = {
@@ -37,10 +37,14 @@ class CapstoneTestCase(unittest.TestCase):
             "gender": "female"
         }
         self.new_movie_actor = {
-            "movie_id": 1,
-            "actor_id": 1,
+            "movie_id": 0, # default
+            "actor_id": 0, # default
             "actor_pay": 10000
         }
+        # auth token
+        self.client_token = CLIENT_TOKEN
+        self.assistant_token = ASSISTANT_TOKEN
+        self.producer_token = PRODUCER_TOKEN
     
     def tearDown(self) -> None:
         pass
@@ -48,7 +52,8 @@ class CapstoneTestCase(unittest.TestCase):
     # test cases (post >> get >> put >> delete)
     # region: post
     def test_add_movie(self):
-        res = self.client().post('/movies',json=self.new_movie)
+        res = self.client().post('/movies',json=self.new_movie, headers={('Content-Type', 'application/json'),
+                                                                ('Authorization', f'{self.producer_token}')})
         data = json.loads(res.data)
 
         # assertion
@@ -59,7 +64,8 @@ class CapstoneTestCase(unittest.TestCase):
     def test_400_badrequest_on_movie_creation(self):
         mock = copy.copy(self.new_movie)
         mock["release_date"] = 'error format'
-        res = self.client().post('/movies',json=mock)
+        res = self.client().post('/movies',json=mock, headers={('Content-Type', 'application/json'),
+                                                      ('Authorization', f'{self.producer_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code,400)
@@ -67,7 +73,8 @@ class CapstoneTestCase(unittest.TestCase):
         self.assertEqual(data['message'], "bad request")
 
     def test_add_actor(self):
-        res = self.client().post('/actors',json=self.new_actor)
+        res = self.client().post('/actors',json=self.new_actor, headers={('Content-Type', 'application/json'),
+                                                      ('Authorization', f'{self.producer_token}')})
         data = json.loads(res.data)
 
         # assertion
@@ -78,7 +85,8 @@ class CapstoneTestCase(unittest.TestCase):
     def test_400_on_actor_creation(self):
         mock = copy.copy(self.new_actor)
         mock["age"] = 'error format'
-        res = self.client().post('/actors',json=mock)
+        res = self.client().post('/actors',json=mock, headers={('Content-Type', 'application/json'),
+                                                      ('Authorization', f'{self.producer_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code,400)
@@ -86,7 +94,8 @@ class CapstoneTestCase(unittest.TestCase):
         self.assertEqual(data['message'], "bad request")
     
     def test_add_director(self):
-        res = self.client().post('/directors',json=self.new_director)
+        res = self.client().post('/directors',json=self.new_director, headers={('Content-Type', 'application/json'),
+                                                      ('Authorization', f'{self.producer_token}')})
         data = json.loads(res.data)
 
         # assertion
@@ -97,7 +106,8 @@ class CapstoneTestCase(unittest.TestCase):
     def test_400_on_director_creation(self):
         mock = copy.copy(self.new_director)
         mock["age"] = 'error format'
-        res = self.client().post('/directors',json=mock)
+        res = self.client().post('/directors',json=mock, headers={('Content-Type', 'application/json'),
+                                                      ('Authorization', f'{self.producer_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code,400)
@@ -105,7 +115,20 @@ class CapstoneTestCase(unittest.TestCase):
         self.assertEqual(data['message'], "bad request")
     
     def test_add_movie_actor(self):
-        res = self.client().post('/movie_actors',json=self.new_movie_actor)
+        # get movie and actor id just created
+        get_actors_res = self.client().get('/actors' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
+        actor_id = json.loads(get_actors_res.data)['actors'][-1]['id']
+        get_movies_res = self.client().get('/movies' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
+        movie_id = json.loads(get_movies_res.data)['movies'][-1]['id']
+
+        mock = copy.copy(self.new_movie_actor)
+        mock["actor_id"] = actor_id
+        mock["movie_id"] = movie_id
+
+        res = self.client().post('/movie_actors',json=mock, headers={('Content-Type', 'application/json'),
+                                                      ('Authorization', f'{self.producer_token}')})
         data = json.loads(res.data)
 
         # assertion
@@ -116,7 +139,8 @@ class CapstoneTestCase(unittest.TestCase):
     def test_400_on_movie_actor_creation(self):
         mock = copy.copy(self.new_movie_actor)
         mock["actor_pay"] = 'error format'
-        res = self.client().post('/movie_actors',json=mock)
+        res = self.client().post('/movie_actors',json=mock, headers={('Content-Type', 'application/json'),
+                                                      ('Authorization', f'{self.producer_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code,400)
@@ -127,7 +151,8 @@ class CapstoneTestCase(unittest.TestCase):
 
     # region: get
     def test_get_movies(self):
-        res = self.client().get('/movies')
+        res = self.client().get('/movies' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.client_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code,200)
@@ -135,7 +160,8 @@ class CapstoneTestCase(unittest.TestCase):
         self.assertTrue(data['movies'])
     
     def test_get_actors(self):
-        res = self.client().get('/actors')
+        res = self.client().get('/actors' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.client_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code,200)
@@ -143,7 +169,8 @@ class CapstoneTestCase(unittest.TestCase):
         self.assertTrue(data['actors'])
 
     def test_get_directors(self):
-        res = self.client().get('/directors')
+        res = self.client().get('/directors' ,headers={('Content-Type', 'application/json'),
+                                                       ('Authorization', f'{self.client_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code,200)
@@ -151,7 +178,8 @@ class CapstoneTestCase(unittest.TestCase):
         self.assertTrue(data['directors'])
 
     def test_get_movie_actors(self):
-        res = self.client().get('/movie_actors')
+        res = self.client().get('/movie_actors' ,headers={('Content-Type', 'application/json'),
+                                                          ('Authorization', f'{self.client_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code,200)
@@ -168,10 +196,12 @@ class CapstoneTestCase(unittest.TestCase):
     
     def test_get_movie_by_id(self):
         # get the movie created
-        get_movies_res = self.client().get('/movies')
+        get_movies_res = self.client().get('/movies' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         target_id = json.loads(get_movies_res.data)['movies'][-1]['id']
         # test
-        res = self.client().get(f'/movies/{target_id}')
+        res = self.client().get(f'/movies/{target_id}' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.client_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code,200)
@@ -179,7 +209,8 @@ class CapstoneTestCase(unittest.TestCase):
         self.assertTrue(data['movie'])
     
     def test_400_get_movie_beyond_range(self):
-        res = self.client().get('/movies/1000000000')
+        res = self.client().get('/movies/1000000000' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.client_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code, 400)
@@ -188,10 +219,12 @@ class CapstoneTestCase(unittest.TestCase):
 
     def test_get_actor_by_id(self):
         # get the actor created
-        get_actors_res = self.client().get('/actors')
+        get_actors_res = self.client().get('/actors' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         target_id = json.loads(get_actors_res.data)['actors'][-1]['id']
         # test
-        res = self.client().get(f'/actors/{target_id}')
+        res = self.client().get(f'/actors/{target_id}' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.client_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code,200)
@@ -199,7 +232,8 @@ class CapstoneTestCase(unittest.TestCase):
         self.assertTrue(data['actor'])
     
     def test_400_get_actor_beyond_range(self):
-        res = self.client().get('/actors/1000000000')
+        res = self.client().get('/actors/1000000000' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.client_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code, 400)
@@ -208,10 +242,12 @@ class CapstoneTestCase(unittest.TestCase):
     
     def test_get_director_by_id(self):
         # get the director created
-        get_directors_res = self.client().get('/directors')
+        get_directors_res = self.client().get('/directors' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         target_id = json.loads(get_directors_res.data)['directors'][-1]['id']
         # test
-        res = self.client().get(f'/directors/{target_id}')
+        res = self.client().get(f'/directors/{target_id}' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.client_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code,200)
@@ -219,7 +255,8 @@ class CapstoneTestCase(unittest.TestCase):
         self.assertTrue(data['director'])
     
     def test_400_get_director_beyond_range(self):
-        res = self.client().get('/directors/1000000000')
+        res = self.client().get('/directors/1000000000' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.client_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code, 400)
@@ -232,10 +269,12 @@ class CapstoneTestCase(unittest.TestCase):
     # region: put
     def test_update_movie(self):
         # get the movie created
-        get_movies_res = self.client().get('/movies')
+        get_movies_res = self.client().get('/movies' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         target_id = json.loads(get_movies_res.data)['movies'][-1]['id']
         # test
-        res = self.client().put(f'/movies/{target_id}', json=self.new_movie)
+        res = self.client().put(f'/movies/{target_id}', json=self.new_movie ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code, 200)
@@ -244,12 +283,14 @@ class CapstoneTestCase(unittest.TestCase):
 
     def test_400_update_movie_with_wrong_format(self):
         # get the movie created
-        get_movies_res = self.client().get('/movies')
+        get_movies_res = self.client().get('/movies' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         target_id = json.loads(get_movies_res.data)['movies'][-1]['id']
         # test
         mock = copy.copy(self.new_movie)
         mock['release_date'] = 'wrong_format'
-        res = self.client().put(f'/movies/{target_id}', json=mock)
+        res = self.client().put(f'/movies/{target_id}', json=mock ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code, 400)
@@ -257,7 +298,8 @@ class CapstoneTestCase(unittest.TestCase):
         self.assertTrue(data['message'], 'bad request')
     
     def test_400_update_movie_with_invalid_id(self):
-        res = self.client().put('/movies/100000000', json=self.new_movie)
+        res = self.client().put('/movies/100000000', json=self.new_movie ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code, 400)
@@ -266,10 +308,12 @@ class CapstoneTestCase(unittest.TestCase):
     
     def test_update_actor(self):
         # get the actor created
-        get_actors_res = self.client().get('/actors')
+        get_actors_res = self.client().get('/actors' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         target_id = json.loads(get_actors_res.data)['actors'][-1]['id']
         # test
-        res = self.client().put(f'/actors/{target_id}', json=self.new_actor)
+        res = self.client().put(f'/actors/{target_id}', json=self.new_actor ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code, 200)
@@ -278,12 +322,14 @@ class CapstoneTestCase(unittest.TestCase):
 
     def test_400_update_actor_with_wrong_format(self):
         # get the actor created
-        get_actors_res = self.client().get('/actors')
+        get_actors_res = self.client().get('/actors' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         target_id = json.loads(get_actors_res.data)['actors'][-1]['id']
         # test
         mock = copy.copy(self.new_actor)
         mock['age'] = 'wrong_format'
-        res = self.client().put(f'/actors/{target_id}', json=mock)
+        res = self.client().put(f'/actors/{target_id}', json=mock ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code, 400)
@@ -291,7 +337,8 @@ class CapstoneTestCase(unittest.TestCase):
         self.assertTrue(data['message'], 'bad request')
     
     def test_400_update_actor_with_invalid_id(self):
-        res = self.client().put('/actors/100000000', json=self.new_actor)
+        res = self.client().put('/actors/100000000', json=self.new_actor ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code, 400)
@@ -300,10 +347,12 @@ class CapstoneTestCase(unittest.TestCase):
     
     def test_update_director(self):
         # get the director created
-        get_directors_res = self.client().get('/directors')
+        get_directors_res = self.client().get('/directors' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         target_id = json.loads(get_directors_res.data)['directors'][-1]['id']
         # test
-        res = self.client().put(f'/directors/{target_id}', json=self.new_director)
+        res = self.client().put(f'/directors/{target_id}', json=self.new_director ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code, 200)
@@ -312,12 +361,14 @@ class CapstoneTestCase(unittest.TestCase):
 
     def test_400_update_director_with_wrong_format(self):
         # get the director created
-        get_directors_res = self.client().get('/directors')
+        get_directors_res = self.client().get('/directors' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         target_id = json.loads(get_directors_res.data)['directors'][-1]['id']
         # test
         mock = copy.copy(self.new_director)
         mock['age'] = 'wrong_format'
-        res = self.client().put(f'/directors/{target_id}', json=mock)
+        res = self.client().put(f'/directors/{target_id}', json=mock ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code, 400)
@@ -325,7 +376,8 @@ class CapstoneTestCase(unittest.TestCase):
         self.assertTrue(data['message'], 'bad request')
     
     def test_400_update_director_with_invalid_id(self):
-        res = self.client().put('/directors/100000000', json=self.new_director)
+        res = self.client().put('/directors/100000000', json=self.new_director ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code, 400)
@@ -334,10 +386,23 @@ class CapstoneTestCase(unittest.TestCase):
 
     def test_update_movie_actor(self):
         # get the movie_actor created
-        get_movie_actors_res = self.client().get('/movie_actors')
+        get_movie_actors_res = self.client().get('/movie_actors' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         target_id = json.loads(get_movie_actors_res.data)['movie_actors'][-1]['id']
+        # get movie and actor id just created
+        get_actors_res = self.client().get('/actors' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
+        actor_id = json.loads(get_actors_res.data)['actors'][-1]['id']
+        get_movies_res = self.client().get('/movies' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
+        movie_id = json.loads(get_movies_res.data)['movies'][-1]['id']
+
+        mock = copy.copy(self.new_movie_actor)
+        mock["actor_id"] = actor_id
+        mock["movie_id"] = movie_id
         # test
-        res = self.client().put(f'/movie_actors/{target_id}', json=self.new_movie_actor)
+        res = self.client().put(f'/movie_actors/{target_id}', json=mock ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code, 200)
@@ -346,12 +411,14 @@ class CapstoneTestCase(unittest.TestCase):
 
     def test_400_update_movie_actor_with_wrong_format(self):
         # get the movie_actor created
-        get_movie_actors_res = self.client().get('/movie_actors')
+        get_movie_actors_res = self.client().get('/movie_actors' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         target_id = json.loads(get_movie_actors_res.data)['movie_actors'][-1]['id']
         # test
         mock = copy.copy(self.new_movie_actor)
         mock['actor_pay'] = 'wrong_format'
-        res = self.client().put(f'/movie_actors/{target_id}', json=mock)
+        res = self.client().put(f'/movie_actors/{target_id}', json=mock ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code, 400)
@@ -359,7 +426,8 @@ class CapstoneTestCase(unittest.TestCase):
         self.assertTrue(data['message'], 'bad request')
     
     def test_400_update_movie_actor_with_invalid_id(self):
-        res = self.client().put('/movie_actors/100000000', json=self.new_movie_actor)
+        res = self.client().put('/movie_actors/100000000', json=self.new_movie_actor ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code, 400)
@@ -368,13 +436,94 @@ class CapstoneTestCase(unittest.TestCase):
 
     # endregion
 
+    # region: RBAC
+    def test_403_client_not_allowed_add_movie(self):
+        res = self.client().post('/movies',json=self.new_movie, headers={('Content-Type', 'application/json'),
+                                                                ('Authorization', f'{self.client_token}')})
+        data = json.loads(res.data)
+        # assertion
+        self.assertEqual(res.status_code, 403)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], "unauthorized")
+
+    def test_403_client_not_allowed_add_actor(self):
+        res = self.client().post('/actors',json=self.new_actor, headers={('Content-Type', 'application/json'),
+                                                      ('Authorization', f'{self.client_token}')})
+        data = json.loads(res.data)
+        # assertion
+        self.assertEqual(res.status_code, 403)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], "unauthorized")
+
+    def test_403_assistant_not_allowed_add_movie_actor(self):
+        res = self.client().post('/movie_actors',json=self.new_movie_actor, headers={('Content-Type', 'application/json'),
+                                                      ('Authorization', f'{self.assistant_token}')})
+        data = json.loads(res.data)
+        # assertion
+        self.assertEqual(res.status_code, 403)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], "unauthorized")
+
+    def test_403_assistant_not_allowed_delete_movie(self):
+        get_movies_res = self.client().get('/movies' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.assistant_token}')})
+        target_id = json.loads(get_movies_res.data)['movies'][-1]['id']
+        # test
+        res = self.client().delete(f'/movies/{target_id}' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.assistant_token}')})
+        data = json.loads(res.data)
+        # assertion
+        self.assertEqual(res.status_code, 403)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], "unauthorized")
+
+    def test_producer_add_movie_actor(self):
+        # get movie and actor id just created
+        get_actors_res = self.client().get('/actors' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
+        actor_id = json.loads(get_actors_res.data)['actors'][-1]['id']
+        get_movies_res = self.client().get('/movies' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
+        movie_id = json.loads(get_movies_res.data)['movies'][-1]['id']
+
+        mock = copy.copy(self.new_movie_actor)
+        mock["actor_id"] = actor_id
+        mock["movie_id"] = movie_id
+
+        res = self.client().post('/movie_actors',json=mock, headers={('Content-Type', 'application/json'),
+                                                      ('Authorization', f'{self.producer_token}')})
+        data = json.loads(res.data)
+
+        # assertion
+        self.assertEqual(res.status_code,200)
+        self.assertEqual(data['success'],True)
+        self.assertTrue(data['new_movie_actor'])
+
+    def test_producer_delete_movie_actor(self):
+        # get the movie_actor created
+        get_movie_actors_res = self.client().get('/movie_actors' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
+        target_id = json.loads(get_movie_actors_res.data)['movie_actors'][-1]['id']
+        # test
+        res = self.client().delete(f'/movie_actors/{target_id}' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
+        data = json.loads(res.data)
+        # assertion
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(data['success'], True)
+        self.assertEqual(data['deleted_movie_actor'], target_id)
+        
+    # endregion
+
     # region: delete
     def test_delete_movie(self):
         # get the movie created
-        get_movies_res = self.client().get('/movies')
+        get_movies_res = self.client().get('/movies' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         target_id = json.loads(get_movies_res.data)['movies'][-1]['id']
         # test
-        res = self.client().delete(f'/movies/{target_id}')
+        res = self.client().delete(f'/movies/{target_id}' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code, 200)
@@ -382,7 +531,8 @@ class CapstoneTestCase(unittest.TestCase):
         self.assertEqual(data['deleted_movie'], target_id)
 
     def test_400_delete_movie_with_invalid_id(self):
-        res = self.client().delete('/movies/100000000')
+        res = self.client().delete('/movies/100000000' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code, 400)
@@ -391,10 +541,12 @@ class CapstoneTestCase(unittest.TestCase):
     
     def test_delete_actor(self):
         # get the actor created
-        get_actors_res = self.client().get('/actors')
+        get_actors_res = self.client().get('/actors' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         target_id = json.loads(get_actors_res.data)['actors'][-1]['id']
         # test
-        res = self.client().delete(f'/actors/{target_id}')
+        res = self.client().delete(f'/actors/{target_id}' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code, 200)
@@ -402,7 +554,8 @@ class CapstoneTestCase(unittest.TestCase):
         self.assertEqual(data['deleted_actor'], target_id)
 
     def test_400_delete_actor_with_invalid_id(self):
-        res = self.client().delete('/actors/100000000')
+        res = self.client().delete('/actors/100000000' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code, 400)
@@ -411,10 +564,12 @@ class CapstoneTestCase(unittest.TestCase):
 
     def test_delete_director(self):
         # get the director created
-        get_directors_res = self.client().get('/directors')
+        get_directors_res = self.client().get('/directors' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         target_id = json.loads(get_directors_res.data)['directors'][-1]['id']
         # test
-        res = self.client().delete(f'/directors/{target_id}')
+        res = self.client().delete(f'/directors/{target_id}' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code, 200)
@@ -422,7 +577,8 @@ class CapstoneTestCase(unittest.TestCase):
         self.assertEqual(data['deleted_director'], target_id)
 
     def test_400_delete_director_with_invalid_id(self):
-        res = self.client().delete('/directors/100000000')
+        res = self.client().delete('/directors/100000000' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code, 400)
@@ -431,10 +587,12 @@ class CapstoneTestCase(unittest.TestCase):
     
     def test_delete_movie_actor(self):
         # get the movie_actor created
-        get_movie_actors_res = self.client().get('/movie_actors')
+        get_movie_actors_res = self.client().get('/movie_actors' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         target_id = json.loads(get_movie_actors_res.data)['movie_actors'][-1]['id']
         # test
-        res = self.client().delete(f'/movie_actors/{target_id}')
+        res = self.client().delete(f'/movie_actors/{target_id}' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code, 200)
@@ -442,7 +600,8 @@ class CapstoneTestCase(unittest.TestCase):
         self.assertEqual(data['deleted_movie_actor'], target_id)
 
     def test_400_delete_movie_actor_with_invalid_id(self):
-        res = self.client().delete('/movie_actors/100000000')
+        res = self.client().delete('/movie_actors/100000000' ,headers={('Content-Type', 'application/json'),
+                                                   ('Authorization', f'{self.producer_token}')})
         data = json.loads(res.data)
         # assertion
         self.assertEqual(res.status_code, 400)
