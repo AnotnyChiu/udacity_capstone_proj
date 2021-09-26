@@ -6,7 +6,6 @@ from flask_migrate import Migrate
 from flask_cors import CORS
 from werkzeug.exceptions import BadRequest, Unauthorized
 from models import CreateEntity
-from config import DB_PATH_TEST
 from auth import requires_auth
 import sys
 
@@ -17,8 +16,6 @@ def create_app(test_config=None):
 
     # db setting
     app.config.from_object('config')
-    if test_config is True:
-        app.config['SQLALCHEMY_DATABASE_URI'] = DB_PATH_TEST
 
     db = SQLAlchemy(app)
     migrate = Migrate(app, db)
@@ -622,6 +619,8 @@ def create_app(test_config=None):
         }), 500
 
     # endregion
+    print(db_object)
+
     return app, db_object
 
 
