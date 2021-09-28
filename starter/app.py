@@ -1,12 +1,11 @@
 import os
-from auth import AuthError
 from flask import Flask, json, request, abort, jsonify, redirect
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS
-from werkzeug.exceptions import BadRequest, Unauthorized
+from werkzeug.exceptions import BadRequest
 from models import CreateEntity
-from auth import requires_auth
+from auth import requires_auth, AuthError
 import sys
 
 
@@ -50,9 +49,6 @@ def create_app(test_config=None):
     @app.route('/movies')
     @requires_auth('get:movies')
     def get_movies(jwt):
-        # check permissions
-        if 'get:movies' not in jwt['permissions']:
-            raise Unauthorized
         try:
             movies = [m.json_format() for m in Movie.query.all()]
             
@@ -61,7 +57,7 @@ def create_app(test_config=None):
                 'movies': movies
             })
 
-        except Unauthorized:
+        except AuthError:
             abort(403)
         except:
             error_msg = sys.exc_info()
@@ -71,8 +67,6 @@ def create_app(test_config=None):
     @app.route('/movies/<int:movie_id>')
     @requires_auth('get:movies')
     def get_movie_by_id(jwt,movie_id):
-        if 'get:movies' not in jwt['permissions']:
-            raise Unauthorized
         try:
             movie = (Movie.query
                      .filter(Movie.id == movie_id)
@@ -88,7 +82,7 @@ def create_app(test_config=None):
 
         except BadRequest:
             abort(400)
-        except Unauthorized:
+        except AuthError:
             abort(403)
         except:
             error_msg = sys.exc_info()
@@ -123,8 +117,6 @@ def create_app(test_config=None):
     @app.route('/movies/<int:movie_id>', methods=['PUT'])
     @requires_auth('put:movies')
     def update_movie(jwt,movie_id):
-        if 'put:movies' not in jwt['permissions']:
-            raise Unauthorized
         try:
             body = request.get_json()
             movie = (Movie.query
@@ -145,7 +137,7 @@ def create_app(test_config=None):
             })
         except BadRequest:
             abort(400)
-        except Unauthorized:
+        except AuthError:
             abort(403)
         except:
             error_msg = sys.exc_info()
@@ -155,8 +147,6 @@ def create_app(test_config=None):
     @app.route('/movies/<int:movie_id>', methods=['DELETE'])
     @requires_auth('delete:movies')
     def delete_movie(jwt,movie_id):
-        if 'delete:movies' not in jwt['permissions']:
-            raise Unauthorized
         try:
             movie = (Movie.query
                      .filter(Movie.id == movie_id)
@@ -173,7 +163,7 @@ def create_app(test_config=None):
             })
         except BadRequest:
             abort(400)
-        except Unauthorized:
+        except AuthError:
             abort(403)
         except:
             err_msg = sys.exc_info()
@@ -185,8 +175,6 @@ def create_app(test_config=None):
     @app.route('/actors')
     @requires_auth('get:actors')
     def get_actors(jwt):
-        if 'get:actors' not in jwt['permissions']:
-            raise Unauthorized
         try:
             actors = [a.json_format() for a in Actor.query.all()]
 
@@ -194,7 +182,7 @@ def create_app(test_config=None):
                 'success': True,
                 'actors': actors
             })
-        except Unauthorized:
+        except AuthError:
             abort(403)
         except:
             error_msg = sys.exc_info()
@@ -205,8 +193,6 @@ def create_app(test_config=None):
     @requires_auth('get:actors')
     def get_actor_by_id(jwt, actor_id):
         try:
-            if 'get:actors' not in jwt['permissions']:
-                raise Unauthorized
             actor = (Actor.query
                      .filter(Actor.id == actor_id)
                      .one_or_none())
@@ -221,7 +207,7 @@ def create_app(test_config=None):
         
         except BadRequest:
             abort(400)
-        except Unauthorized:
+        except AuthError:
             abort(403)
         except:
             error_msg = sys.exc_info()
@@ -256,8 +242,6 @@ def create_app(test_config=None):
     @app.route('/actors/<int:actor_id>', methods=['PUT'])
     @requires_auth('put:actors')
     def update_actor(jwt, actor_id):
-        if 'put:actors' not in jwt['permissions']:
-            raise Unauthorized
         try:
             body = request.get_json()
             actor = (Actor.query
@@ -279,7 +263,7 @@ def create_app(test_config=None):
             })
         except BadRequest:
             abort(400)
-        except Unauthorized:
+        except AuthError:
             abort(403)
         except:
             err_msg = sys.exc_info()
@@ -289,8 +273,6 @@ def create_app(test_config=None):
     @app.route('/actors/<int:actor_id>', methods=['DELETE'])
     @requires_auth('delete:actors')
     def delete_actor(jwt, actor_id):
-        if 'delete:actors' not in jwt['permissions']:
-            raise Unauthorized
         try:
             actor = (Actor.query
                      .filter(Actor.id == actor_id)
@@ -307,7 +289,7 @@ def create_app(test_config=None):
             })
         except BadRequest:
             abort(400)
-        except Unauthorized:
+        except AuthError:
             abort(403)
         except:
             err_msg = sys.exc_info()
@@ -319,8 +301,6 @@ def create_app(test_config=None):
     @app.route('/directors')
     @requires_auth('get:directors')
     def get_directors(jwt):
-        if 'get:directors' not in jwt['permissions']:
-            raise Unauthorized
         try:
             directors = [d.json_format() for d in Director.query.all()]
 
@@ -328,7 +308,7 @@ def create_app(test_config=None):
                 'success': True,
                 'directors': directors
             })
-        except Unauthorized:
+        except AuthError:
             abort(403)
         except:
            error_msg = sys.exc_info()
@@ -338,8 +318,6 @@ def create_app(test_config=None):
     @app.route('/directors/<int:director_id>')
     @requires_auth('get:directors')
     def get_director_by_id(jwt, director_id):
-        if 'get:directors' not in jwt['permissions']:
-            raise Unauthorized
         try:
             director = (Director.query
                         .filter(Director.id == director_id)
@@ -354,7 +332,7 @@ def create_app(test_config=None):
             })
         except BadRequest:
             abort(400)
-        except Unauthorized:
+        except AuthError:
             abort(403)
         except:
             error_msg = sys.exc_info()
@@ -364,8 +342,6 @@ def create_app(test_config=None):
     @app.route('/directors', methods=['POST'])
     @requires_auth('post:directors')
     def add_director(jwt):
-        if 'post:directors' not in jwt['permissions']:
-            raise Unauthorized
         try:
             body = request.get_json()
 
@@ -381,7 +357,7 @@ def create_app(test_config=None):
                 'new_director': insert_director.id
             })
 
-        except Unauthorized:
+        except AuthError:
             abort(403)
         except:
             error_msg = sys.exc_info()
@@ -391,8 +367,6 @@ def create_app(test_config=None):
     @app.route('/directors/<int:director_id>', methods=['PUT'])
     @requires_auth('put:directors')
     def update_director(jwt, director_id):
-        if 'put:directors' not in jwt['permissions']:
-            raise Unauthorized
         try:
             body = request.get_json()
             director = (Director.query
@@ -414,7 +388,7 @@ def create_app(test_config=None):
             })
         except BadRequest:
             abort(400)
-        except Unauthorized:
+        except AuthError:
             abort(403)
         except:
             err_msg = sys.exc_info()
@@ -424,8 +398,6 @@ def create_app(test_config=None):
     @app.route('/directors/<int:director_id>', methods=['DELETE'])
     @requires_auth('delete:directors')
     def delete_director(jwt, director_id):
-        if 'delete:directors' not in jwt['permissions']:
-            raise Unauthorized
         try:
             director = (Director.query
                      .filter(Director.id == director_id)
@@ -442,7 +414,7 @@ def create_app(test_config=None):
             })
         except BadRequest:
             abort(400)
-        except Unauthorized:
+        except AuthError:
             abort(403)
         except:
             err_msg = sys.exc_info()
@@ -454,17 +426,15 @@ def create_app(test_config=None):
     @app.route('/movie_actors')
     @requires_auth('get:movieactors')
     def get_movie_actors(jwt):
-        if 'get:movieactors' not in jwt['permissions']:
-            raise Unauthorized
         try:
             ma = [ma.json_format() for ma in MovieActor.query.all()]
-            
+            print(ma)
             return jsonify({
                 'success': True,
                 'movie_actors': ma
             })
 
-        except Unauthorized:
+        except AuthError:
             abort(403)
         except:
             error_msg = sys.exc_info()
@@ -474,8 +444,6 @@ def create_app(test_config=None):
     @app.route('/movie_actors', methods=['POST'])
     @requires_auth('post:movieactors')
     def add_movie_actor(jwt):
-        if 'post:movieactors' not in jwt['permissions']:
-            raise Unauthorized
         try:
             body = request.get_json()
 
@@ -491,7 +459,7 @@ def create_app(test_config=None):
                 'new_movie_actor': insert_ma.id
             })
 
-        except Unauthorized:
+        except AuthError:
             abort(403)
         except:
             error_msg = sys.exc_info()
@@ -501,8 +469,6 @@ def create_app(test_config=None):
     @app.route('/movie_actors/<int:ma_id>', methods=['PUT'])
     @requires_auth('put:movieactors')
     def update_movie_actor(jwt, ma_id):
-        if 'put:movieactors' not in jwt['permissions']:
-            raise Unauthorized
         try:
             body = request.get_json()
             ma = (MovieActor.query
@@ -523,7 +489,7 @@ def create_app(test_config=None):
             })
         except BadRequest:
             abort(400)
-        except Unauthorized:
+        except AuthError:
             abort(403)
         except:
             error_msg = sys.exc_info()
@@ -533,9 +499,6 @@ def create_app(test_config=None):
     @app.route('/movie_actors/<int:ma_id>', methods=['DELETE'])
     @requires_auth('delete:movieactors')
     def delete_movie_actor(jwt, ma_id):
-                    
-        if 'delete:movieactors' not in jwt['permissions']:
-            raise Unauthorized
         try:
             ma = (MovieActor.query
                      .filter(MovieActor.id == ma_id)
@@ -552,7 +515,7 @@ def create_app(test_config=None):
             })
         except BadRequest:
             abort(400)
-        except Unauthorized:
+        except AuthError:
             abort(403)
         except:
             err_msg = sys.exc_info()
@@ -570,21 +533,13 @@ def create_app(test_config=None):
             'message': 'bad request'
         }), 400
     
-    @app.errorhandler(401)
-    def forbidden(error):
-        return jsonify({
-            'success': False,
-            'error': 401,
-            'message': 'forbidden'
-        }),401
-
-    @app.errorhandler(403)
+    @app.errorhandler(AuthError)
     def unauthorized(error):
         return jsonify({
             'success': False,
-            'error': 403,
-            'message': 'unauthorized'
-        }),403
+            'error': error.status_code,
+            'message': error.error['description']
+        }),error.status_code
 
     @app.errorhandler(404)
     def resource_not_found(error):
@@ -619,7 +574,6 @@ def create_app(test_config=None):
         }), 500
 
     # endregion
-    print(db_object)
 
     return app, db_object
 
