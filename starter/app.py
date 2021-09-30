@@ -35,15 +35,16 @@ def create_app(test_config=None):
     # get models
     Movie, Actor, Director, MovieActor, db_object = CreateEntity(db)
 
+    # welcome page
+    @app.route('/')
+    def welcome():
+        return '<h1>Welcome To My Casting API!</h1>'
+
     # login,logout endpoint and after login
     @app.route('/login')
     def login():
         login_url = 'https://fsndantony.us.auth0.com/authorize?audience=udacitycapstone&response_type=token&client_id=3RasktidrIvC5xUYYdeYlFV2z2HdIlnD&redirect_uri=https://127.0.0.1:8080/login-results'
         return redirect(login_url)
-    
-    @app.route('/login-results') # seems cannot access to this endpoint
-    def after_login():
-        return 'login successfully'
 
     # region: movie endpoint
     @app.route('/movies')
